@@ -1,0 +1,22 @@
+MG total points: 10000
+scan points: 500
+window size: 500
+
+Best match by MSE
+  start_index: 1
+  end_index: 500
+  mse: 6.607494428303e-13
+  corr: 9.999999999971e-01
+
+Best match by correlation
+  start_index: 1
+  end_index: 500
+  mse: 6.607494428303e-13
+  corr: 9.999999999971e-01
+
+Top 5 candidates by MSE
+  1. start=1, end=500, mse=6.607494428303e-13, corr=9.999999999971e-01
+  2. start=2, end=501, mse=1.444992017198e-03, corr=9.893767595003e-01
+  3. start=5660, end=6159, mse=2.056192917715e-03, corr=9.848632409966e-01
+  4. start=6158, end=6657, mse=2.387660585026e-03, corr=9.823865261630e-01
+  5. start=8348, end=8847, mse=2.527948416398e-03, corr=9.813956039338e-01
