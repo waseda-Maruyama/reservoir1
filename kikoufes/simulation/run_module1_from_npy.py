@@ -9,7 +9,7 @@ from module1 import simulate_module1_step31
 
 def main():
     root = Path(__file__).resolve().parent
-    trajectory_path = root / "H_trajectory_920_sine.npy"
+    trajectory_path = root / "H_trajectory_1500.npy"
 
     if not trajectory_path.exists():
         raise FileNotFoundError(f"Trajectory file not found: {trajectory_path}")

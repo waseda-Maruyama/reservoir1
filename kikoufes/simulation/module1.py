@@ -31,7 +31,7 @@ def simulate_module1_step31(H_trajectory, params, return_all=False):
     delta_E0 = params.get("delta_E0", 0.0)
     kappa = params.get("kappa", 0.0)
     k_B_T = params.get("k_B_T", 1.0)
-    lam_kill = params.get("lambda_kill", 0.0)
+    lam_kill = params.get("lam_kill", 0.0)
 
     for t in range(T - 1):
         H_t = H_trajectory[t]
