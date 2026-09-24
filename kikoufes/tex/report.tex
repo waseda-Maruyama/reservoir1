@@ -1,0 +1,633 @@
+% =============================================================
+%  進捗報告：Cu2OSeO3 物理リザーバーコンピューティング
+%  ビルド: lualatex report.tex （2回実行して相互参照を解決）
+% =============================================================
+\documentclass[11pt,a4paper]{ltjsarticle}
+
+\usepackage{luatexja-fontspec}
+\setmainjfont{Harano Aji Mincho}
+\setsansjfont{Harano Aji Gothic}
+
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{siunitx}
+
+\geometry{margin=25mm}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=[rgb]{0.1,0.3,0.6},
+  citecolor=[rgb]{0.1,0.3,0.6},
+  urlcolor=[rgb]{0.1,0.3,0.6},
+  pdftitle={Cu2OSeO3を用いた物理リザーバーコンピューティングのボトムアップ・シミュレーション開発},
+}
+
+\captionsetup{font=small,labelfont=bf}
+\captionsetup[figure]{name=図}
+\captionsetup[table]{name=表}
+
+% --- 図のプレースホルダ用マクロ ---
+% 画像が未配置でもビルドが通るよう、\IfFileExists で分岐する
+\newcommand{\figplaceholder}[2]{%
+  \fbox{\parbox[c][#2][c]{0.92\linewidth}{\centering\small\color{gray}%
+  ［図をここに配置］\\[2pt]\texttt{\detokenize{#1}}}}%
+}
+\newcommand{\insertfig}[3]{%
+  % #1: ファイル名, #2: 幅, #3: プレースホルダ高さ
+  \IfFileExists{#1}{\includegraphics[width=#2]{#1}}{\figplaceholder{#1}{#3}}%
+}
+
+% --- 強調ボックス ---
+\newtcolorbox{keybox}[1][]{
+  colback=blue!3!white, colframe=blue!40!black,
+  boxrule=0.6pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, #1
+}
+\newtcolorbox{cautionbox}[1][]{
+  colback=orange!5!white, colframe=orange!60!black,
+  boxrule=0.6pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=gray!5!white, colframe=gray!55!black,
+  boxrule=0.6pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, #1
+}
+
+\title{\LARGE 進捗報告\\[6pt]
+\Large Cu$_2$OSeO$_3$を用いた物理リザーバーコンピューティングの\\
+ボトムアップ・シミュレーション開発}
+\author{早稲田大学　機械科学・航空宇宙専攻}
+\date{2026年9月14日}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+キラル磁性絶縁体 Cu$_2$OSeO$_3$ のスピン波ダイナミクスを用いた物理リザーバーコンピューティング（PRC）の実験研究（Lee et al., Nature Materials 2024）を、第一原理計算由来の物理定数と非平衡統計力学に基づくボトムアップモデルによって再現するシミュレータを構築した。スキルミオン密度の履歴依存ダイナミクスを記述するModule~1（3状態自律系レート方程式）と、そこからマイクロ波反射スペクトル $\Delta S_{11}(f)$ を合成するModule~2（多モードLorentz合成）の二層構成により、原論文が報告する「遅延形成 $\rightarrow$ 急成長 $\rightarrow$ アバランシェ崩壊」という過渡的挙動を定性的に再現した。Mackey-Glass時系列の10ステップ先予測タスクでは、シミュレーションの線形メモリ容量 $\mathrm{LMC}=4.92$、Testing MSE=$1.74\times10^{-2}$ に対し、実測値はそれぞれ $4.94158$、$8.934\times10^{-3}$ であった。本報告では開発経緯・現状の到達点・未解決課題を整理し、今後の方針として「物理的複雑性の段階的付加によるアブレーション実験」と「リアリティギャップの定量化」の二軸を提案する。
+\end{abstract}
+
+%\begin{notebox}
+%\textbf{本報告書の読み方：}第\ref{sec:dev}章は開発過程で遭遇した問題とその解決策を記録した\textbf{引き継ぎ・備忘目的}のセクションであり、結果の把握のみを目的とする場合は読み飛ばして差し支えない。第\ref{sec:results}章は\textbf{単独で読めるよう構成}しており、構築したシミュレータで何をどこまで確認できたかを、入力の構築（\S\ref{sec:res_input}）$\rightarrow$ パイプライン検証（\S\ref{sec:res_fig2b}）$\rightarrow$ 実タスク評価（\S\ref{sec:res_mg}）の順に述べる。
+%\end{notebox}
+
+\tableofcontents
+\newpage
+
+% =============================================================
+\section{研究背景と目的}
+% =============================================================
+
+\subsection{物理リザーバーコンピューティング（PRC）とは}
+
+物理リザーバーコンピューティング（Physical Reservoir Computing, PRC）は、複雑な非線形・履歴依存的応答を示す物理系そのものをニューラルネットワークの「隠れ層」として利用する計算手法である。リザーバー内部の結合荷重は物理系の自然なダイナミクスに委ねられ、学習が必要なのは出力層の線形回帰（リッジ回帰）のみであるため、深層学習と比較して桁違いに低い学習コストで、時系列予測や非線形変換といったタスクを実行できる。
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/prc_concept.png}{0.9\linewidth}{55mm}
+\caption{物理リザーバーコンピューティングの概念図。入力層で時系列信号を物理量（本研究では磁場）へ写像し、リザーバー層（Cu$_2$OSeO$_3$のスピン波応答）が高次元空間へ非線形射影を行う。学習は出力層の線形回帰のみで完結する（文献\cite{lee2024}より抜粋）。}
+\label{fig:prc_concept}
+\end{figure}
+
+\subsection{対象とする実験系}
+
+本プロジェクトが再現対象とするのは、Lee et al.\cite{lee2024} による、キラル磁性絶縁体 Cu$_2$OSeO$_3$ を用いたタスク適応型PRCの実証実験である。この物質は温度と磁場に応じてヘリカル相・コニカル相・スキルミオン相という複数の磁気テクスチャ相を示し、各相が固有のGHz帯スピン波共鳴特性を持つ。
+
+実験では、磁場変調プロトコル（Mapped Field Cycling, MFC）により入力時系列を磁場軌道へ写像し、各サイクルでのマイクロ波反射係数 $S_{11}$ を1601本の周波数チャンネルにわたって測定する。これにより、単一次元の入力信号が1601次元のリザーバー状態へと「周波数多重化」される。
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/phase_diagram.png}{0.85\linewidth}{60mm}
+\caption{Cu$_2$OSeO$_3$の温度--磁場相図と、本研究が対象とする実験条件（$H_\mathrm{c}=\SI{60}{mT}$, $H_\mathrm{range}=\SI{90}{mT}$, $T=\SI{4}{K}$）。低温側の準安定スキルミオン相が、履歴依存的なメモリ特性の源泉となる（文献\cite{lee2024}より抜粋）。}
+\label{fig:phase_diagram}
+\end{figure}
+
+原論文の中心的な知見は、\textbf{磁気相ごとにリザーバー特性が大きく異なる}点にある。準安定スキルミオン相は磁場サイクリングに伴う段階的な核形成により強いメモリ容量（MC）を示し時系列予測に優れる一方、コニカル相は共鳴周波数の急峻な磁場依存性により高い非線形性（NL）と複雑性（CP）を示し波形変換タスクに優れる。
+
+\subsection{本研究の目的と作業仮説}
+
+本プロジェクトの目的は、上記実験系を第一原理的・ボトムアップな物理パラメータのみに基づいてソフトウェア上で再現し、実験値（MSE, NL, LMC, CP）と直接比較することにある。単なる波形フィッティング（トップダウンの関数近似）では、シミュレーションが数値的な近似器に限定され、物理パラメータ変動に対するロバスト性の検証や、物理機構と計算能力の因果関係の解明といった本来の意義が損なわれる可能性がある。
+
+さらに本研究は、次の作業仮説の検証を試みるものである。
+
+\begin{keybox}
+\textbf{作業仮説：}一般的な機械学習・システム設計においては、ノイズが少なくシンプルなモデルが好まれる。しかしPRCにおいては、物理系固有の複雑性・非線形性（一見ノイズ的に見える成分）自体が計算資源として機能しており、理想化されすぎたシミュレーションではこの計算能力を本質的に過小評価してしまうのではないか。
+\end{keybox}
+
+この仮説が正しければ、「シミュレーション精度が実機に届かない」という結果は、\textbf{モデル構築の失敗だけでなく、物理的複雑性が計算資源として機能していることの定量的証拠}として解釈できる。
+
+% =============================================================
+\section{モデル全体構成}
+% =============================================================
+
+シミュレーションパイプラインは2つのモジュールから構成される。数理モデルの完全な定式化は付録\ref{app:module1}・\ref{app:module2}に譲り、本節では役割の概要を述べる。
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/pipeline.pdf}{0.95\linewidth}{50mm}
+\caption{シミュレーションパイプラインの全体構成。入力磁場軌道からModule~1が相分率の時間発展を計算し、Module~2がそこからマイクロ波吸収スペクトルを合成する。出力はPRCpy互換形式で書き出され、実機データと同一の評価パイプラインに投入される。}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Module 1：スキルミオン密度ダイナミクス}
+
+磁場軌道 $H(t)$ を入力とし、非平衡統計力学に基づく3状態レート方程式を数値積分して各相の分率を出力する。状態変数は、コニカル相 $\varphi_\mathrm{C}$、トポロジカル欠陥・ひずみの蓄積を表す中間状態 $\varphi_\mathrm{TC}$、スキルミオン相 $\varphi_\mathrm{Sk}$ の3つである。
+
+3変数化した理由は、単純な2状態モデルでは磁場サイクリングを続けると生成項と緩和項が数サイクルで釣り合い、密度が定常状態（$n\approx0.5$）に早期固着してしまい、原論文が報告する過渡的ダイナミクスを再現できないためである。中間状態 $\varphi_\mathrm{TC}$ を介した自己触媒的な遷移レートを導入することで、履歴依存的な遅延形成と、密度が臨界値を超えた際の非線形な一斉崩壊（アバランシェ）を、\textbf{時刻を明示的に含まない自律系として}実現している。
+
+\subsection{Module 2：マイクロ波吸収スペクトル合成}
+
+Module~1が出力する相分率とその時点の磁場から、VNA（ベクトルネットワークアナライザ）が観測するスペクトル $\Delta S_{11}(f)$ を合成する。各磁気モードをLorentz関数として重ね合わせ、中心周波数は磁場に対するZeemanシフトを、振幅は対応する相分率を反映する。スキルミオン相はcounter-clockwise（CCW）モードとbreathingモードの2本に分割し、中間状態 $\varphi_\mathrm{TC}$ についても線幅の広い独立モードとして追加している。
+
+\subsection{評価パイプライン}
+
+Module~2の出力は、原論文の共著者らが公開する解析パッケージ PRCpy\cite{prcpy} が読み込むCSV形式（\texttt{"Current","Field","Frequency","Spectra"}）で書き出され、\textbf{実機測定ファイルと同一のカラム構成・命名規則}でエミュレートされる。これによりリッジ回帰による学習・評価（MSE）と、リザーバー指標（NL, LMC, CP）の算出を、実機データと同一の条件下で実行できる。
+
+% =============================================================
+\section{開発経緯と実装上の知見}\label{sec:dev}
+% =============================================================
+
+\begin{notebox}
+本章は開発過程の記録ですので、第4章へ進んでいただいて問題ないです。
+\end{notebox}
+
+\subsection{Module 1の開発}
+
+\subsubsection{解決した問題}
+
+開発過程で以下の問題を発見・修正した。特に3番目のパラメータキー名の不整合は、それ以前に取得していた比較実験データの一部を無効化するものであり、検証手法そのものへの教訓を含む。
+
+\begin{table}[htbp]
+\centering
+\caption{Module~1開発で解決した主要な問題}
+\label{tab:module1_issues}
+\small
+\begin{tabular}{@{}p{38mm}p{105mm}@{}}
+\toprule
+\textbf{項目} & \textbf{内容} \\
+\midrule
+供給レート不足 &
+TC$\rightarrow$Sk変換レート $\gamma_0$ が過小で、密度が中間状態に滞留し高々0.3程度で頭打ちしていた。$\gamma_0$を1桁以上引き上げることで解消。 \\
+\addlinespace
+崩壊レートの符号誤り &
+密度上昇に伴い崩壊の活性化障壁が\textit{上昇}する式（$\Delta E_0 + \kappa\varphi_\mathrm{Sk}^2$）になっており、意図（高密度で不安定化）と逆であった。符号を修正。 \\
+\addlinespace
+パラメータキー名の不整合 &
+コード内での参照キー（\texttt{"lambda\_kill"}）と設定キー（\texttt{"lam\_kill"}）が一致せず、常にデフォルト値が使われていた。このため「崩壊を完全に無効化したはずの対照実験」に実際は減衰が掛かっており、\textbf{一連の比較データが無効であったことが判明}。 \\
+\addlinespace
+崩壊機構の設計方針の確定 &
+崩壊レートを「磁場が安定領域外に出たときのみ、その瞬間の密度に応じた指数関数的レートで発生する」形に整理。安定領域内では成長のみが進み、領域外に出た瞬間に密度依存の急速崩壊が生じる構造を採用。 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{cautionbox}
+\textbf{検証手法への教訓：}パラメータキー名の不整合は、Pythonの \texttt{dict.get(key, default)} がキー不在時に例外を投げず黙ってデフォルト値を返すために発覚が遅れた。以降は、対照実験を行う際に「意図した条件が実際に適用されているか」を、レート値そのものの出力によって毎回確認する手順を導入した。
+\end{cautionbox}
+
+\subsubsection{検討したが却下した仮説}
+
+\begin{description}[leftmargin=12mm,style=nextline]
+\item[TC--アバランシェ結合の導入]
+崩壊発火に連動して $\varphi_\mathrm{TC}$ も強制的に消費される機構。Bloch点を介した位相欠陥の同時緩和という物理的類推は成立しうるが、直接の理論的裏付けを欠き、Fig.~2b への波形合わせのための自由パラメータ化に陥るリスクが高いと判断して保留した。
+
+\item[温度駆動の窓閉鎖仮説]
+磁場サイクリングの累積発熱（渦電流損失）により試料温度が準安定スキルミオン相の存在限界（$\sim\SI{25}{K}$）を超え、相自体が消滅するという機構。しかしこの仮説は、原論文が $N=1000$ サイクルにわたる安定したリザーバー動作を報告している事実と真っ向から矛盾する。仮に $N\approx200$ で不可逆に融解するなら、Mackey-Glass予測タスク自体が成立しない。よって却下した。
+\end{description}
+
+\subsubsection{入力磁場軌道の方式確定}
+
+補足資料の精査により、対象とする一連の図（Fig.~2a--e）はMapped Field Cycling方式であると判断した。$H_\mathrm{high}$の最大値と$H_\mathrm{low}$の最小値の差が $H_\mathrm{range}$ に一致するという実験条件から、sine変調の振幅は $A = H_\mathrm{range}/4$ と逆算して確定した（付録\ref{app:module1}, 式\eqref{eq:mfc}）。構築した軌道そのものについては\S\ref{sec:res_input}で述べる。
+
+\subsection{Module 2の開発}
+
+コニカル・スキルミオンの2状態による単純な2本Lorentz合成から着手し、以下の拡張を段階的に行った。
+
+\begin{enumerate}[leftmargin=8mm]
+\item 中間状態 $\varphi_\mathrm{TC}$ を表す第3のLorentzモード（線幅の広い欠陥的応答）の追加
+\item スキルミオンモードのCCW／breathingモードへの分割（原論文本文の記述に対応）
+\item 振幅応答の非線形化（べき乗則）
+\end{enumerate}
+
+3番目の非線形化は、次の問題への対処として導入した。振幅を $\varphi_\mathrm{Sk}$ に\textit{線形}比例させると、密度がごくわずか（例：崩壊直後の $\varphi_\mathrm{Sk}\approx0.001$）でも有限の振幅を持つため、\textbf{常時スキルミオンモードが可視化されてしまう}。実測では低密度域のスキルミオンモードは検出限界以下として「見えない」はずである。そこで検出閾値を模した非線形応答 $A\propto\varphi_\mathrm{Sk}^{\,p}$ を導入し、$p=4$ で原論文Fig.~2bの見た目（$N\approx100$まで無反応、その後急激に出現）に近い結果を得た。
+
+\begin{cautionbox}
+\textbf{留意事項：}この $p=4$ は原論文の図の見た目の再現を優先して選定した値であり、物理的根拠は現時点で十分に検証されていない。同じ見た目はModule~1側の生成レートを緩やかにすることでも実現しうるため、この自由度は後述するアブレーション実験（\S\ref{sec:ablation}）の対象として明示的に扱う。
+\end{cautionbox}
+
+% =============================================================
+\section{現状の結果}\label{sec:results}
+% =============================================================
+
+本章では、構築したシミュレータで現時点までに確認できた事項を、パイプラインの流れに沿って3段階で述べる。すなわち、(i)~入力となる磁場軌道の構築（\S\ref{sec:res_input}）、(ii)~原論文の実測結果との比較によるパイプライン全体の妥当性検証（\S\ref{sec:res_fig2b}）、(iii)~実際の計算タスクにおける性能評価（\S\ref{sec:res_mg}）である。
+
+\subsection{入力磁場軌道の構築}\label{sec:res_input}
+
+原論文の実験プロトコル（Mapped Field Cycling, MFC）に基づき、入力時系列を磁場軌道へ写像する機構を実装した。各サイクル $N$ は $H_\mathrm{low}\rightarrow H_\mathrm{mid}\rightarrow H_\mathrm{high}$ の3点から構成され、\textbf{これら3点の中心値自体が入力信号によって変調される}。リザーバー出力としては、各サイクルの $H_\mathrm{low}$ 地点で観測されるスペクトルを用いる。
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/H_trajectory.pdf}{0.98\linewidth}{55mm}
+\caption{構築した入力磁場軌道。各サイクル $N$ は $H_\mathrm{low}\rightarrow H_\mathrm{mid}\rightarrow H_\mathrm{high}$ の3点から構成され、入力信号（sine波(a)あるいはMackey-Glass信号(b)）を $H_\mathrm{mid}$ として $H_\mathrm{range}$ の値によって上下に変調される。(c)は実際の入力イメージ（序盤4サイクル程度まで）。リザーバー出力は $H_\mathrm{low}$ 地点のスペクトルを用いる。}
+\label{fig:h_trajectory}
+\end{figure}
+
+図\ref{fig:h_trajectory}に構築した軌道を示す。$H_\mathrm{c}=\SI{60}{mT}$, $H_\mathrm{range}=\SI{90}{mT}$ の条件では、$H_\mathrm{low}$ は $15$--$\SI{60}{mT}$ の範囲を振動する。ここで重要なのは、この振動により $H_\mathrm{low}$ が\textbf{スキルミオン準安定領域（$25$--$\SI{120}{mT}$）の内外を周期的に出入りする}点である。この出入りが、\S\ref{sec:res_fig2b}以降で述べる成長と崩壊の交替を駆動する。
+
+\subsection{パイプラインの妥当性検証：Fig.~2bの再現}\label{sec:res_fig2b}
+
+構築したModule~1・Module~2を接続し、原論文Fig.~2bに対応する条件（$H_\mathrm{c}=\SI{60}{mT}$, $T=\SI{4}{K}$, sine波入力）でスペクトルの時間発展を計算した。この比較の目的は、\textbf{個々のパラメータの精度を問うことではなく、入力の写像からスペクトル合成に至るパイプライン全体が所期の構成で動作するかを確認すること}にある。
+
+\subsubsection{Module 1が生成する相ダイナミクス}
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/module1_dynamics.pdf}{0.95\linewidth}{75mm}
+\caption{Module~1の出力。上段：スキルミオン密度 $n_\mathrm{obs}=\varphi_\mathrm{Sk}$ の時間発展。中段：磁化 $m_z$。下段：3相の分率。磁場が準安定領域内にある間は成長のみが進み、領域外に出た瞬間に密度依存の急速崩壊が生じる、アバランシェ的な周期構造が確認できる。}
+\label{fig:module1_dynamics}
+\end{figure}
+
+図\ref{fig:module1_dynamics}に示すとおり、$\varphi_\mathrm{Sk}$ は最大 $0.7$--$0.8$ 程度まで緩やかに成長した後、磁場サイクルが準安定領域を外れるタイミングで急激に崩壊する。中間状態 $\varphi_\mathrm{TC}$ が先行して蓄積し、それが臨界量に達してから $\varphi_\mathrm{Sk}$ が立ち上がるという段階構造も確認でき、想定した「遅延形成」が自律的なダイナミクスとして生じている。
+
+\subsubsection{合成スペクトルと実測の比較}
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}
+\centering
+\insertfig{fig/fig2b_simulation.png}{\linewidth}{80mm}
+\caption{本シミュレーション}
+\label{fig:fig2b_sim}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\linewidth}
+\centering
+\insertfig{fig/fig2b_experiment.png}{\linewidth}{80mm}
+\caption{原論文 Fig.~2b（実測）}
+\label{fig:fig2b_exp}
+\end{subfigure}
+\caption{$H_\mathrm{c}=\SI{60}{mT}$, $T=\SI{4}{K}$における、サイクル数 $N=100$--$200$（10刻み）のスペクトル発展の比較。実測では$N=100$付近でコニカル相由来の\SI{4}{GHz}帯の鋭い吸収のみが見え、サイクルを重ねるにつれ2--3\,GHz帯にスキルミオンモードが出現・成長する。}
+\label{fig:fig2b_comparison}
+\end{figure}
+
+図\ref{fig:fig2b_comparison}に、合成したスペクトルと実測の比較を示す。サイクル初期にはコニカル相由来の吸収が支配的であり、サイクルを重ねるにつれて低周波側にスキルミオンモードが出現・成長し、その後消失するという\textbf{定性的な振る舞いを再現した}。
+
+\begin{keybox}
+\textbf{この検証の意義：}Fig.~2bの再現により、「入力信号の磁場軌道への写像 $\rightarrow$ 相ダイナミクスの時間発展 $\rightarrow$ スペクトル合成 $\rightarrow$ PRCpy互換形式での出力」という\textbf{パイプライン全体が所期の構成で動作すること}を確認した。これにより、次節で述べる計算タスクの評価へ進む前提が整った。
+\end{keybox}
+
+一方で、実測スペクトルに見られる微細な干渉縞（リップル構造）は本モデルでは再現されておらず、合成スペクトルは滑らかな数本のLorentz曲線の重ね合わせにとどまっている。この差は後述する性能ギャップの一因である可能性が高い（\S\ref{sec:issues}）。
+
+\subsection{実タスクによる性能評価：Mackey-Glass予測}\label{sec:res_mg}
+
+パイプラインの妥当性が確認できたため、実際の計算タスクとして、カオス時系列であるMackey-Glass信号の10ステップ先予測を実行した。入力信号を sine波からMackey-Glass時系列に差し替え、同一のパイプラインで1601次元のリザーバー状態を生成し、PRCpyによりリッジ回帰（$\tau=10$, $\alpha=10^{-3}$, test\_size$=0.3$）で評価した。
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/mg_prediction.pdf}{0.95\linewidth}{60mm}
+\caption{Mackey-Glass 10ステップ先予測の結果。上段：学習データ、下段：テストデータ。青線が目標信号、橙線がリザーバーによる予測。ピーク・谷の位置はおおむね追随できているが、振幅の再現が不十分であり、位相にもわずかな遅れが見られる。}
+\label{fig:mg_prediction}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{初回end-to-end評価の結果と実測値の比較}
+\label{tab:performance}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{指標} & \textbf{本シミュレーション} & \textbf{実測値（スキルミオン相）} \\
+\midrule
+Training MSE     & $2.824\times10^{-2}$ & $2.010\times10^{-2}$ \\
+Testing MSE      & $1.743\times10^{-2}$ & $8.934\times10^{-3}$ \\
+LMC（線形メモリ容量） & $4.92$            & $4.94158$ \\
+NL（非線形性）   & $0.63$               & $0.549967$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+図\ref{fig:mg_prediction}および表\ref{tab:performance}に結果を示す。予測波形はピーク・谷の位置をおおむね追随できているものの、振幅の再現が不十分であり、位相にもわずかな遅れが見られる。
+
+\begin{keybox}
+\textbf{結果の解釈：}線形メモリ容量（LMC）はシミュレーションで $4.92$、実測で $4.94158$ と近い値を示した。一方、Testing MSEはシミュレーションで $1.743\times10^{-2}$、実測で $8.934\times10^{-3}$ であり、シミュレーションは実測の約1.95倍であった。\textbf{LMC単体では説明できない性能差が残されており}、理想化されたモデルでは表現されていない物理的複雑性が、その一因である可能性がある。
+\end{keybox}
+
+% =============================================================
+\section{未解決の課題}\label{sec:issues}
+% =============================================================
+
+\begin{enumerate}[leftmargin=8mm]
+\item \textbf{振幅非線形指数 $p$ の恣意性：}$p=4$は図の見た目の再現のための後付け的調整であり、リザーバー性能評価の観点からの妥当性・最適性が未検証である。
+
+\item \textbf{リップル構造の未実装：}実機スペクトルに存在する微細な干渉縞（コプレーナ線路のインピーダンス不整合による定在波干渉、および試料の有限サイズに起因する空間高次スピン波モードの多重共鳴）が未実装である。この細かな起伏こそがリザーバーの「ノードの豊富さ（実効次元）」を担保していると考えられ、現状では1601次元のうち計算上意味を持つ次元数が実機より著しく少ない可能性が高い。
+
+\item \textbf{TCモードのパラメータ未確定：}中心周波数・線幅等が理論的導出に基づかない暫定値のままである。
+
+\item \textbf{NLの差異：}$\mathrm{NL}=0.63$（シミュレーション）は実測値 $0.549967$ より高く、この差異がMSEの差に寄与している可能性がある。原論文の相関分析ではNLとLMCは弱い負相関（$-0.27$）を示しており、過剰な非線形性がメモリ容量を圧迫している可能性がある。
+\end{enumerate}
+
+% =============================================================
+\section{今後の作戦}\label{sec:strategy}
+% =============================================================
+
+\subsection{基本方針：単一の数値ではなく「傾向」を示す}
+
+現状のMSE差を埋めるために個別パラメータを調整する方向は、\textbf{「実測に合わせて恣意的に調整した」と解釈される}構造的なリスクを抱えている。実際、リアリティを追求してモデルを複雑化するほど自由パラメータは増え、経験的なフィッティングと本質的な物理の寄与を区別することが困難になる。
+
+この矛盾を解消する鍵は、\textbf{単一の最終結果ではなく、体系的な比較実験（アブレーション）として結果を提示すること}にある。個別に調整した一点のMSE値ではなく、「モデルにどの物理要素を加えるとリザーバー性能がどのように変化するか」という傾向を示すことで、作業仮説を定量的に検証できる。
+
+\subsection{作戦A：段階的アブレーションによる寄与度の定量化}\label{sec:ablation}
+
+Module~2を、物理的複雑性の異なる複数バージョンとして用意し、リザーバー指標とタスク性能の変化を系統的に測定する。
+
+\begin{table}[htbp]
+\centering
+\caption{アブレーション実験の設計}
+\label{tab:ablation_design}
+\small
+\begin{tabular}{@{}llp{62mm}@{}}
+\toprule
+\textbf{モデル} & \textbf{構成} & \textbf{追加される物理的複雑性} \\
+\midrule
+Model 0 & 2本Lorentz、線形振幅 & （基準：最も理想化されたモデル） \\
+Model 1 & + TCモード & 中間欠陥状態の独立した分光応答 \\
+Model 2 & + Sk モード分割 & CCW／breathingの2モード共存 \\
+Model 3 & + 非線形振幅応答 & 検出閾値的な非線形性 \\
+Model 4 & + リップル構造 & 定在波干渉・空間高次モードによる高次元性 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+各モデルについて $(\mathrm{NL}, \mathrm{MC}, \mathrm{CP}, \mathrm{MSE})$ を測定し、「物理的複雑性 vs リザーバー性能」の関係を1枚の図として提示する。
+
+\begin{figure}[htbp]
+\centering
+\insertfig{fig/ablation_result.pdf}{0.9\linewidth}{65mm}
+\caption{（作成予定）アブレーション実験の結果。横軸にモデルの物理的複雑性、縦軸にリザーバー性能指標をとり、複雑性の付加が性能に与える寄与を定量化する。破線は実測値の水準を示す。}
+\label{fig:ablation_result}
+\end{figure}
+
+\subsubsection{予想される結果とその意味}
+
+\begin{description}[leftmargin=12mm,style=nextline]
+\item[シナリオ1：単調な改善が観測される場合]
+複雑性を加えるごとにMSEが実測値へ近づく傾向が得られれば、作業仮説を直接的に支持する結果となる。「物理的複雑性は計算資源である」という主張を、モデルの構成要素レベルで定量化できたことになる。特にModel~4（リップル構造）で大きな改善が見られれば、実効次元数がリザーバー性能を律速しているという明確な因果を示せる。
+
+\item[シナリオ2：途中で飽和・悪化する場合]
+たとえばNLの付加がLMCを圧迫してMSEを悪化させるなら、これは原論文が報告するLMC--CPのトレードオフ（相関係数 $-0.68$）をシミュレーション側から独立に再現したことになる。「複雑性の増加が必ずしも性能向上につながるわけではなく、タスクに応じた適切な複雑性が存在する」という、より精緻な主張へ発展させられる。
+
+\item[シナリオ3：どの要素も効かない場合]
+仮にすべての要素がMSEにほぼ寄与しないなら、性能ギャップの主因はModule~2（分光応答）ではなくModule~1（状態ダイナミクス）側にあることになる。この場合でも「探索範囲を切り分けた」という意味で、次の改善方針を明確に絞り込める。
+\end{description}
+
+いずれのシナリオでも\textbf{解釈可能な結論が得られる}点が、この設計の利点である。
+
+\subsection{作戦B：リアリティギャップの定量化}
+
+アブレーションを尽くしてもなお残る実測との差を、単なるモデルの未完成度ではなく「理想化されたボトムアップモデルでは原理的に捉えきれない、物理系固有の複雑性に由来する計算能力の差」として明示的に定量化する。
+
+\begin{keybox}
+\textbf{目標とする主張の形：}「第一原理パラメータのみに基づく理想化モデルは、実機リザーバーの性能の約 $X\%$ を再現できる。残る $Y\%$ は、素子ばらつき・熱揺らぎ・測定系との電磁気的結合といった、モデル化されていない物理的複雑性に由来すると考えられる。」
+\end{keybox}
+
+これは精度そのものを誇るのではなく、\textbf{シミュレーションの限界を定量的に示す}という誠実な立ち位置であり、当初のプロジェクト目標（リアリティギャップの定量化）にも合致する。
+
+\subsection{発表に向けた位置づけ}
+
+専攻内発表では、聴衆の大半が磁性体・PRCいずれにも予備知識を持たないことが想定される。したがって精緻な数値改善よりも、次の一点を直感的に伝えることを優先する。
+
+\begin{keybox}
+\textbf{発表のコアメッセージ：}機械システムの設計では、通常ノイズや複雑性は排除すべきものとして扱われる。しかしこの計算方式においては、\textbf{物理的な複雑さそのものが計算能力の源泉}となっている。実際、モデルを単純化するほど計算性能は劣化し、物理的複雑性を加えるほど実機の性能に近づく。
+\end{keybox}
+
+これは一般的な工学設計の直感（単純なモデルほど良い）に対する反例として、専門外の聴衆にも訴求力を持つと考えられる。
+
+\subsection{実行スケジュール}
+
+\begin{table}[htbp]
+\centering
+\caption{今後の実行計画}
+\label{tab:schedule}
+\small
+\begin{tabular}{@{}clp{72mm}@{}}
+\toprule
+\textbf{段階} & \textbf{内容} & \textbf{備考} \\
+\midrule
+1 & 振幅非線形指数の掃引 & $p=0,1,2,3,4$でNL/MC/CP/MSEを測定。既存実装のみで完結。 \\
+2 & TCモード有無の比較 & \texttt{amp\_TC\_scale}$=0$との対照。同上。 \\
+3 & アブレーション図の作成 & 段階1--2の結果を統合し図\ref{fig:ablation_result}を作成。 \\
+4 & リップル構造の実装 & 周波数軸への決定論的干渉項の追加。時間が許せば実施。 \\
+5 & リアリティギャップの算出 & 全モデルの残差を統合し定量的な結論を導出。 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+段階1--3は既存実装のパラメータ掃引のみで実現可能であり、新規の大規模実装を要しない。段階4は工数を要するため、発表までの時間を見て判断する。
+
+% =============================================================
+\newpage
+\appendix
+% =============================================================
+
+\section{Module 1 数理モデルの完全な定式化}\label{app:module1}
+
+\subsection{状態変数と保存則}
+
+時刻（磁場サイクル内のステップ）$t$ における各相の分率を次のように定義する。
+\begin{equation}
+\varphi_\mathrm{C}(t) + \varphi_\mathrm{TC}(t) + \varphi_\mathrm{Sk}(t) = 1
+\label{eq:conservation}
+\end{equation}
+ここで $\varphi_\mathrm{C}$ はコニカル相分率、$\varphi_\mathrm{TC}$ はトポロジカル欠陥・ひずみの蓄積を表す中間状態分率、$\varphi_\mathrm{Sk}$ はスキルミオン相分率である。
+
+\subsection{磁場依存の相判定}
+
+スキルミオン相が準安定に存在しうる磁場範囲を指示関数で表す。
+\begin{equation}
+\mathrm{in\_sky}(H) =
+\begin{cases}
+1 & (H_\mathrm{min} \le H \le H_\mathrm{max}) \\
+0 & (\text{otherwise})
+\end{cases}
+\label{eq:insky}
+\end{equation}
+本モデルでは先行研究に準拠し $H_\mathrm{min}=\SI{25}{mT}$, $H_\mathrm{max}=\SI{120}{mT}$ を用いる。
+
+\subsection{遷移レート}
+
+\begin{align}
+\Gamma_{\mathrm{C}\to\mathrm{TC}} &= \Gamma_{\mathrm{C,TC}} \cdot \mathrm{in\_sky}(H) \label{eq:rate_ctc}\\
+\Gamma_{\mathrm{TC}\to\mathrm{C}} &= \Gamma_{\mathrm{TC,C}} \cdot \bigl(1 - \mathrm{in\_sky}(H)\bigr) \label{eq:rate_tcc}\\
+\Gamma_{\mathrm{TC}\to\mathrm{Sk}} &= \gamma_0 \cdot \varphi_\mathrm{TC}^{\,m} \cdot \mathrm{in\_sky}(H) \label{eq:rate_tcsk}
+\end{align}
+
+式\eqref{eq:rate_tcsk}は $\varphi_\mathrm{TC}$ の $m$ 乗に比例する\textbf{自己触媒的}な遷移レートであり、この非線形性が「中間状態の蓄積が臨界値を超えるまで反応が実質的に進まない」という遅延形成の起源となっている。
+
+\subsection{崩壊レート（アバランシェ機構）}
+
+密度依存の活性化障壁を導入する。
+\begin{align}
+E_\mathrm{act}(\varphi_\mathrm{Sk}) &= \max\bigl(\Delta E_0 - \kappa\,\varphi_\mathrm{Sk}^{\,2},\; 0\bigr) \label{eq:eact}\\
+\Gamma_{\mathrm{Sk}\to\mathrm{C}} &= \nu_0 \exp\!\left(-\frac{E_\mathrm{act}(\varphi_\mathrm{Sk})}{k_\mathrm{B}T}\right) \cdot \bigl(1 - \mathrm{in\_sky}(H)\bigr) \label{eq:rate_skc}
+\end{align}
+
+崩壊レートは磁場が安定領域外（$\mathrm{in\_sky}=0$）に出たときのみ有効となり、その大きさはその瞬間のスキルミオン密度に応じて指数関数的に変化する。密度が高いほど活性化障壁 $E_\mathrm{act}$ が低下し崩壊が加速するため、一定密度を超えると急激な一斉崩壊（アバランシェ）が生じる。この形式はKTHNY融解理論における非線形緩和と類似の構造を持つ。
+
+\subsection{状態方程式}
+
+\begin{align}
+\frac{d\varphi_\mathrm{TC}}{dt} &= \Gamma_{\mathrm{C}\to\mathrm{TC}}\varphi_\mathrm{C} - \Gamma_{\mathrm{TC}\to\mathrm{C}}\varphi_\mathrm{TC} - \Gamma_{\mathrm{TC}\to\mathrm{Sk}}\varphi_\mathrm{TC} \label{eq:dphitc}\\
+\frac{d\varphi_\mathrm{Sk}}{dt} &= \Gamma_{\mathrm{TC}\to\mathrm{Sk}}\varphi_\mathrm{TC} - \Gamma_{\mathrm{Sk}\to\mathrm{C}}\varphi_\mathrm{Sk} \label{eq:dphisk}\\
+\varphi_\mathrm{C}(t) &= 1 - \varphi_\mathrm{TC}(t) - \varphi_\mathrm{Sk}(t) \label{eq:phic}
+\end{align}
+
+Euler法（$\Delta t = 1$）により数値積分し、各ステップで $\varphi_\mathrm{TC}, \varphi_\mathrm{Sk}$ を $[0,1]$ にクリップする。$\varphi_\mathrm{C}$ は保存則\eqref{eq:conservation}より残差として算出する。
+
+\subsection{磁化の近似}
+
+\begin{equation}
+m_z(H) = \mathrm{clip}\left(\frac{H}{H_{c2}},\, 0,\, 1\right)
+\label{eq:mz}
+\end{equation}
+$H_{c2}$ はコニカル相の飽和臨界磁場（$\SI{170}{mT}$、Janson et al.\cite{janson2014}の値に準拠）。
+
+\subsection{入力磁場軌道（Mapped Field Cycling）}
+
+\begin{align}
+H_\mathrm{mid}(N) &= H_\mathrm{c} + A\sin\!\left(\frac{2\pi N}{P}\right), \qquad A = \frac{H_\mathrm{range}}{4} \notag\\
+H_\mathrm{low}(N) &= H_\mathrm{mid}(N) - A \notag\\
+H_\mathrm{high}(N) &= H_\mathrm{mid}(N) + A
+\label{eq:mfc}
+\end{align}
+
+各サイクル $N$ は $H_\mathrm{low}\to H_\mathrm{mid}\to H_\mathrm{high}$ の3点から構成され、リザーバー出力は $H_\mathrm{low}$ 地点のスペクトルを用いる。振幅を $A=H_\mathrm{range}/4$ としたのは、$H_\mathrm{high}$の最大値と$H_\mathrm{low}$の最小値の差が $H_\mathrm{range}$ に一致するという実験条件から逆算したものである。$P$ は入力信号の周期。予測タスクではsine波の代わりにMackey-Glass時系列で $H_\mathrm{mid}$ を変調する。
+
+% -------------------------------------------------------------
+\section{Module 2 数理モデルの完全な定式化}\label{app:module2}
+
+\subsection{吸収ディップ型Lorentz関数}
+
+\begin{equation}
+L(f; f_0, w, A) = -\,\frac{A\,w^2}{(f - f_0)^2 + w^2}
+\label{eq:lorentz}
+\end{equation}
+$f$ は周波数、$f_0$ は中心周波数、$w$ は線幅、$A$ はピーク振幅である。
+
+\subsection{各モードの中心周波数（Zeemanシフト）}
+
+\begin{align}
+f_\mathrm{C}(H) &= f_\mathrm{C}^{(0)} + s_\mathrm{C}\, H \\
+f_\mathrm{TC}(H) &= f_\mathrm{TC}^{(0)} + s_\mathrm{TC}\, H \\
+f_\mathrm{Sk,ccw}(H) &= f_\mathrm{Sk,ccw}^{(0)} + s_\mathrm{Sk,ccw}\, H \\
+f_\mathrm{Sk,br}(H) &= f_\mathrm{Sk,br}^{(0)} + s_\mathrm{Sk,br}\, H
+\end{align}
+
+\subsection{各モードの振幅}
+
+\begin{align}
+A_\mathrm{C} &= a_\mathrm{C}\, \varphi_\mathrm{C} \\
+A_\mathrm{TC} &= a_\mathrm{TC}\, \varphi_\mathrm{TC} \\
+A_\mathrm{Sk,ccw} &= a_\mathrm{Sk}\, \alpha_\mathrm{CCW}\, \varphi_\mathrm{Sk}^{\,p} \label{eq:amp_ccw}\\
+A_\mathrm{Sk,br} &= a_\mathrm{Sk}\, (1-\alpha_\mathrm{CCW})\, \varphi_\mathrm{Sk}^{\,p} \label{eq:amp_br}
+\end{align}
+
+$\alpha_\mathrm{CCW}$ はスキルミオン分率のうちCCWモードへ配分される割合（本モデルでは0.5）。$p$ は振幅の非線形応答指数であり、検出閾値を模した項として導入した（本モデルでは暫定的に $p=4$）。
+
+\subsection{全体スペクトルの合成}
+
+\begin{multline}
+\Delta S_{11}(f) = L(f; f_\mathrm{C}, w_\mathrm{C}, A_\mathrm{C}) + L(f; f_\mathrm{TC}, w_\mathrm{TC}, A_\mathrm{TC}) \\
++ L(f; f_\mathrm{Sk,ccw}, w_\mathrm{Sk,ccw}, A_\mathrm{Sk,ccw}) + L(f; f_\mathrm{Sk,br}, w_\mathrm{Sk,br}, A_\mathrm{Sk,br}) + C
+\label{eq:s11}
+\end{multline}
+
+$C$ はオフセット定数。得られた $\Delta S_{11}(f)$ を $1$--$\SI{6}{GHz}$ の範囲で1601点サンプリングし、PRCpy互換のリザーバー行列として出力する。
+
+\subsection{今後追加予定：リップル構造（未実装）}
+
+実機スペクトルの微細構造を再現するため、次のような決定論的干渉項の追加を検討している。
+\begin{equation}
+\Delta S_{11}^\mathrm{ripple}(f) = \varepsilon \cos\!\left(\frac{2\pi f}{f_\mathrm{FSR}} + \phi(H, \varphi_\mathrm{Sk})\right)
+\label{eq:ripple}
+\end{equation}
+$f_\mathrm{FSR}$ はコプレーナ線路の自由スペクトル間隔に対応する周期、$\phi$ は磁場および内部状態に依存する位相である。位相が状態変数に依存することで、各周波数チャンネルがサイクルごとに異なる情報を持ち、リザーバーの実効次元数が増大することを狙う。
+
+% -------------------------------------------------------------
+\section{使用パラメータ一覧（本日時点の暫定値）}\label{app:params}
+
+\begin{table}[htbp]
+\centering
+\caption{Module~1のパラメータ}
+\label{tab:params_m1}
+\small
+\begin{tabular}{@{}llp{62mm}@{}}
+\toprule
+\textbf{記号} & \textbf{値} & \textbf{説明} \\
+\midrule
+$H_{c2}$ & \SI{170}{mT} & コニカル相飽和臨界磁場（Janson et al.\ 2014に準拠） \\
+$\Gamma_\mathrm{C,TC}$ & 0.02 & コニカル$\to$TC遷移レート係数 \\
+$\Gamma_\mathrm{TC,C}$ & 0.008 & TC$\to$コニカル遷移レート係数 \\
+$\gamma_0$ & 0.1 & TC$\to$Sk自己触媒的遷移レート係数 \\
+$m$ & 3.0 & TC$\to$Sk遷移の非線形指数 \\
+$\nu_0$ & 0.1--1.0 & 崩壊レートの基底係数（検証中） \\
+$\Delta E_0$ & 0.5 & 崩壊の活性化障壁の基底値 \\
+$\kappa$ & 1.5 & 密度依存の障壁低下係数 \\
+$k_\mathrm{B}T$ & 0.005--0.05 & 崩壊の熱的鋭さを規定する係数（検証中） \\
+$H_\mathrm{min}, H_\mathrm{max}$ & 25, \SI{120}{mT} & スキルミオン準安定領域（先行研究に準拠） \\
+$H_\mathrm{c}$ & \SI{60}{mT} & サイクル中心磁場（Fig.~2b相当条件） \\
+$H_\mathrm{range}$ & \SI{90}{mT} & サイクル幅（Fig.~2b相当条件） \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Module~2のパラメータ}
+\label{tab:params_m2}
+\small
+\begin{tabular}{@{}llp{58mm}@{}}
+\toprule
+\textbf{記号} & \textbf{値} & \textbf{説明} \\
+\midrule
+$f_\mathrm{C}^{(0)}, s_\mathrm{C}$ & \SI{4.1}{GHz}, 0.002 & コニカルモード（暫定） \\
+$f_\mathrm{TC}^{(0)}, s_\mathrm{TC}$ & \SI{3.2}{GHz}, 0.0005 & TCモード（暫定） \\
+$f_\mathrm{Sk,ccw}^{(0)}, s_\mathrm{Sk,ccw}$ & \SI{2.6}{GHz}, $-0.003$ & スキルミオンCCWモード（暫定） \\
+$f_\mathrm{Sk,br}^{(0)}, s_\mathrm{Sk,br}$ & \SI{2.1}{GHz}, $-0.002$ & スキルミオンbreathingモード（暫定） \\
+$w_\mathrm{C}, w_\mathrm{TC}$ & 0.15, \SI{0.4}{GHz} & 線幅（TCは欠陥的応答のため広く設定） \\
+$w_\mathrm{Sk,ccw}, w_\mathrm{Sk,br}$ & 0.12, \SI{0.15}{GHz} & 線幅（暫定） \\
+$a_\mathrm{C}, a_\mathrm{TC}, a_\mathrm{Sk}$ & 3.0, 1.5, 3.0 & 各モード振幅スケール（暫定） \\
+$\alpha_\mathrm{CCW}$ & 0.5 & CCW／breathing配分比 \\
+$p$ & 4.0 & 振幅の非線形応答指数（\textbf{要検証}） \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textit{注：本表の値は現時点の暫定値であり、今後のアブレーション実験・フィッティングにより見直される。}
+
+% =============================================================
+\newpage
+\begin{thebibliography}{9}
+\bibitem{lee2024}
+O.~Lee, T.~Wei, K.~D.~Stenning, \textit{et al.},
+``Task-adaptive physical reservoir computing,''
+\textit{Nature Materials} \textbf{23}, 79--87 (2024). arXiv:2209.06962.
+
+\bibitem{janson2014}
+O.~Janson, I.~Rousochatzakis, A.~A.~Tsirlin, \textit{et al.},
+``The quantum nature of skyrmions and half-skyrmions in Cu$_2$OSeO$_3$,''
+\textit{Nature Communications} \textbf{5}, 5376 (2014).
+
+\bibitem{prcpy}
+H.~Youel, D.~Prestwood, O.~Lee, \textit{et al.},
+``PRCpy: A Python package for processing of physical reservoir computing,''
+arXiv:2410.18356 (2024).
+\end{thebibliography}
+
+\end{document}

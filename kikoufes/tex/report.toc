@@ -1,0 +1,43 @@
+\contentsline {section}{\numberline {1}研究背景と目的}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}物理リザーバーコンピューティング（PRC）とは}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}対象とする実験系}{3}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}本研究の目的と作業仮説}{4}{subsection.1.3}%
+\contentsline {section}{\numberline {2}モデル全体構成}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Module 1：スキルミオン密度ダイナミクス}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Module 2：マイクロ波吸収スペクトル合成}{6}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}評価パイプライン}{6}{subsection.2.3}%
+\contentsline {section}{\numberline {3}開発経緯と実装上の知見}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Module 1の開発}{6}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}解決した問題}{6}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}検討したが却下した仮説}{7}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}入力磁場軌道の方式確定}{7}{subsubsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.2}Module 2の開発}{7}{subsection.3.2}%
+\contentsline {section}{\numberline {4}現状の結果}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}入力磁場軌道の構築}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}パイプラインの妥当性検証：Fig.~2bの再現}{9}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Module 1が生成する相ダイナミクス}{9}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}合成スペクトルと実測の比較}{9}{subsubsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.3}実タスクによる性能評価：Mackey-Glass予測}{10}{subsection.4.3}%
+\contentsline {section}{\numberline {5}未解決の課題}{11}{section.5}%
+\contentsline {section}{\numberline {6}今後の作戦}{12}{section.6}%
+\contentsline {subsection}{\numberline {6.1}基本方針：単一の数値ではなく「傾向」を示す}{12}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}作戦A：段階的アブレーションによる寄与度の定量化}{12}{subsection.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.1}予想される結果とその意味}{12}{subsubsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.3}作戦B：リアリティギャップの定量化}{13}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}発表に向けた位置づけ}{14}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}実行スケジュール}{14}{subsection.6.5}%
+\contentsline {section}{\numberline {付録A}Module 1 数理モデルの完全な定式化}{15}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}状態変数と保存則}{15}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}磁場依存の相判定}{15}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}遷移レート}{15}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}崩壊レート（アバランシェ機構）}{15}{subsection.A.4}%
+\contentsline {subsection}{\numberline {A.5}状態方程式}{16}{subsection.A.5}%
+\contentsline {subsection}{\numberline {A.6}磁化の近似}{16}{subsection.A.6}%
+\contentsline {subsection}{\numberline {A.7}入力磁場軌道（Mapped Field Cycling）}{16}{subsection.A.7}%
+\contentsline {section}{\numberline {付録B}Module 2 数理モデルの完全な定式化}{16}{appendix.B}%
+\contentsline {subsection}{\numberline {B.1}吸収ディップ型Lorentz関数}{16}{subsection.B.1}%
+\contentsline {subsection}{\numberline {B.2}各モードの中心周波数（Zeemanシフト）}{17}{subsection.B.2}%
+\contentsline {subsection}{\numberline {B.3}各モードの振幅}{17}{subsection.B.3}%
+\contentsline {subsection}{\numberline {B.4}全体スペクトルの合成}{17}{subsection.B.4}%
+\contentsline {subsection}{\numberline {B.5}今後追加予定：リップル構造（未実装）}{17}{subsection.B.5}%
+\contentsline {section}{\numberline {付録C}使用パラメータ一覧（本日時点の暫定値）}{17}{appendix.C}%

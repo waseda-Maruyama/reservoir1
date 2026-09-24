@@ -7,15 +7,15 @@ csv_path = "scan_fields_extracted_from_filenames.csv"  # 手元のファイル�
 df = pd.read_csv(csv_path)
 
 # H_mid の配列（500点）
-h_mid = df["extracted_field_mT"].values
-num_cycles = len(h_mid)
+h_low = df["extracted_field_mT"].values
+num_cycles = len(h_low)
 print(f"読み込み完了: {num_cycles} サイクル")
 
 # --- 2. H_mid, H_high の復元と1500点軌道の生成 ---
 H_RANGE = 90  # mT
 
-h_low = h_mid - (H_RANGE / 4.0)
-h_high = h_mid + (H_RANGE / 4.0)
+h_high = h_low + (H_RANGE / 2.0)
+h_mid = h_low + (H_RANGE / 4.0)
 
 
 # 1サイクルあたり 3点 (H_mid -> H_high -> H_low) として結合する場合:

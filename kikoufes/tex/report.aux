@@ -1,0 +1,119 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{lee2024}
+\citation{lee2024}
+\citation{lee2024}
+\citation{lee2024}
+\citation{lee2024}
+\@writefile{toc}{\contentsline {section}{\numberline {1}研究背景と目的}{3}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}物理リザーバーコンピューティング（PRC）とは}{3}{subsection.1.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 物理リザーバーコンピューティングの概念図。入力層で時系列信号を物理量（本研究では磁場）へ写像し、リザーバー層（Cu$_2$OSeO$_3$のスピン波応答）が高次元空間へ非線形射影を行う。学習は出力層の線形回帰のみで完結する（文献\cite  {lee2024}より抜粋）。}}{3}{figure.caption.2}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:prc_concept}{{1}{3}{物理リザーバーコンピューティングの概念図。入力層で時系列信号を物理量（本研究では磁場）へ写像し、リザーバー層（Cu$_2$OSeO$_3$のスピン波応答）が高次元空間へ非線形射影を行う。学習は出力層の線形回帰のみで完結する（文献\cite {lee2024}より抜粋）。}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}対象とする実験系}{3}{subsection.1.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Cu$_2$OSeO$_3$の温度--磁場相図と、本研究が対象とする実験条件（$H_\mathrm  {c}=\SI {60}{mT}$, $H_\mathrm  {range}=\SI {90}{mT}$, $T=\SI {4}{K}$）。低温側の準安定スキルミオン相が、履歴依存的なメモリ特性の源泉となる（文献\cite  {lee2024}より抜粋）。}}{4}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:phase_diagram}{{2}{4}{Cu$_2$OSeO$_3$の温度--磁場相図と、本研究が対象とする実験条件（$H_\mathrm {c}=\SI {60}{mT}$, $H_\mathrm {range}=\SI {90}{mT}$, $T=\SI {4}{K}$）。低温側の準安定スキルミオン相が、履歴依存的なメモリ特性の源泉となる（文献\cite {lee2024}より抜粋）。}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}本研究の目的と作業仮説}{4}{subsection.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}モデル全体構成}{5}{section.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces シミュレーションパイプラインの全体構成。入力磁場軌道からModule~1が相分率の時間発展を計算し、Module~2がそこからマイクロ波吸収スペクトルを合成する。出力はPRCpy互換形式で書き出され、実機データと同一の評価パイプラインに投入される。}}{5}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:pipeline}{{3}{5}{シミュレーションパイプラインの全体構成。入力磁場軌道からModule~1が相分率の時間発展を計算し、Module~2がそこからマイクロ波吸収スペクトルを合成する。出力はPRCpy互換形式で書き出され、実機データと同一の評価パイプラインに投入される。}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Module 1：スキルミオン密度ダイナミクス}{5}{subsection.2.1}\protected@file@percent }
+\citation{prcpy}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Module 2：マイクロ波吸収スペクトル合成}{6}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}評価パイプライン}{6}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}開発経緯と実装上の知見}{6}{section.3}\protected@file@percent }
+\newlabel{sec:dev}{{3}{6}{開発経緯と実装上の知見}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Module 1の開発}{6}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.1}解決した問題}{6}{subsubsection.3.1.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Module~1開発で解決した主要な問題}}{6}{table.caption.5}\protected@file@percent }
+\newlabel{tab:module1_issues}{{1}{6}{Module~1開発で解決した主要な問題}{table.caption.5}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.2}検討したが却下した仮説}{7}{subsubsection.3.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.3}入力磁場軌道の方式確定}{7}{subsubsection.3.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Module 2の開発}{7}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}現状の結果}{8}{section.4}\protected@file@percent }
+\newlabel{sec:results}{{4}{8}{現状の結果}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}入力磁場軌道の構築}{8}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:res_input}{{4.1}{8}{入力磁場軌道の構築}{subsection.4.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 構築した入力磁場軌道。各サイクル $N$ は $H_\mathrm  {low}\rightarrow H_\mathrm  {mid}\rightarrow H_\mathrm  {high}$ の3点から構成され、入力信号（sine波(a)あるいはMackey-Glass信号(b)）を $H_\mathrm  {mid}$ として $H_\mathrm  {range}$ の値によって上下に変調される。(c)は実際の入力イメージ（序盤4サイクル程度まで）。リザーバー出力は $H_\mathrm  {low}$ 地点のスペクトルを用いる。}}{8}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:h_trajectory}{{4}{8}{構築した入力磁場軌道。各サイクル $N$ は $H_\mathrm {low}\rightarrow H_\mathrm {mid}\rightarrow H_\mathrm {high}$ の3点から構成され、入力信号（sine波(a)あるいはMackey-Glass信号(b)）を $H_\mathrm {mid}$ として $H_\mathrm {range}$ の値によって上下に変調される。(c)は実際の入力イメージ（序盤4サイクル程度まで）。リザーバー出力は $H_\mathrm {low}$ 地点のスペクトルを用いる。}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}パイプラインの妥当性検証：Fig.~2bの再現}{9}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:res_fig2b}{{4.2}{9}{パイプラインの妥当性検証：Fig.~2bの再現}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}Module 1が生成する相ダイナミクス}{9}{subsubsection.4.2.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Module~1の出力。上段：スキルミオン密度 $n_\mathrm  {obs}=\varphi _\mathrm  {Sk}$ の時間発展。中段：磁化 $m_z$。下段：3相の分率。磁場が準安定領域内にある間は成長のみが進み、領域外に出た瞬間に密度依存の急速崩壊が生じる、アバランシェ的な周期構造が確認できる。}}{9}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:module1_dynamics}{{5}{9}{Module~1の出力。上段：スキルミオン密度 $n_\mathrm {obs}=\varphi _\mathrm {Sk}$ の時間発展。中段：磁化 $m_z$。下段：3相の分率。磁場が準安定領域内にある間は成長のみが進み、領域外に出た瞬間に密度依存の急速崩壊が生じる、アバランシェ的な周期構造が確認できる。}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}合成スペクトルと実測の比較}{9}{subsubsection.4.2.2}\protected@file@percent }
+\newlabel{fig:fig2b_sim}{{6a}{10}{本シミュレーション}{figure.caption.8}{}}
+\newlabel{sub@fig:fig2b_sim}{{a}{10}{本シミュレーション}{figure.caption.8}{}}
+\newlabel{fig:fig2b_exp}{{6b}{10}{原論文 Fig.~2b（実測）}{figure.caption.8}{}}
+\newlabel{sub@fig:fig2b_exp}{{b}{10}{原論文 Fig.~2b（実測）}{figure.caption.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces $H_\mathrm  {c}=\SI {60}{mT}$, $T=\SI {4}{K}$における、サイクル数 $N=100$--$200$（10刻み）のスペクトル発展の比較。実測では$N=100$付近でコニカル相由来の\SI {4}{GHz}帯の鋭い吸収のみが見え、サイクルを重ねるにつれ2--3\,GHz帯にスキルミオンモードが出現・成長する。}}{10}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:fig2b_comparison}{{6}{10}{$H_\mathrm {c}=\SI {60}{mT}$, $T=\SI {4}{K}$における、サイクル数 $N=100$--$200$（10刻み）のスペクトル発展の比較。実測では$N=100$付近でコニカル相由来の\SI {4}{GHz}帯の鋭い吸収のみが見え、サイクルを重ねるにつれ2--3\,GHz帯にスキルミオンモードが出現・成長する。}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}実タスクによる性能評価：Mackey-Glass予測}{10}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:res_mg}{{4.3}{10}{実タスクによる性能評価：Mackey-Glass予測}{subsection.4.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Mackey-Glass 10ステップ先予測の結果。上段：学習データ、下段：テストデータ。青線が目標信号、橙線がリザーバーによる予測。ピーク・谷の位置はおおむね追随できているが、振幅の再現が不十分であり、位相にもわずかな遅れが見られる。}}{11}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:mg_prediction}{{7}{11}{Mackey-Glass 10ステップ先予測の結果。上段：学習データ、下段：テストデータ。青線が目標信号、橙線がリザーバーによる予測。ピーク・谷の位置はおおむね追随できているが、振幅の再現が不十分であり、位相にもわずかな遅れが見られる。}{figure.caption.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 初回end-to-end評価の結果と実測値の比較}}{11}{table.caption.10}\protected@file@percent }
+\newlabel{tab:performance}{{2}{11}{初回end-to-end評価の結果と実測値の比較}{table.caption.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}未解決の課題}{11}{section.5}\protected@file@percent }
+\newlabel{sec:issues}{{5}{11}{未解決の課題}{section.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}今後の作戦}{12}{section.6}\protected@file@percent }
+\newlabel{sec:strategy}{{6}{12}{今後の作戦}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}基本方針：単一の数値ではなく「傾向」を示す}{12}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}作戦A：段階的アブレーションによる寄与度の定量化}{12}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:ablation}{{6.2}{12}{作戦A：段階的アブレーションによる寄与度の定量化}{subsection.6.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces アブレーション実験の設計}}{12}{table.caption.11}\protected@file@percent }
+\newlabel{tab:ablation_design}{{3}{12}{アブレーション実験の設計}{table.caption.11}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.1}予想される結果とその意味}{12}{subsubsection.6.2.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces （作成予定）アブレーション実験の結果。横軸にモデルの物理的複雑性、縦軸にリザーバー性能指標をとり、複雑性の付加が性能に与える寄与を定量化する。破線は実測値の水準を示す。}}{13}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:ablation_result}{{8}{13}{（作成予定）アブレーション実験の結果。横軸にモデルの物理的複雑性、縦軸にリザーバー性能指標をとり、複雑性の付加が性能に与える寄与を定量化する。破線は実測値の水準を示す。}{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}作戦B：リアリティギャップの定量化}{13}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}発表に向けた位置づけ}{14}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}実行スケジュール}{14}{subsection.6.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 今後の実行計画}}{14}{table.caption.13}\protected@file@percent }
+\newlabel{tab:schedule}{{4}{14}{今後の実行計画}{table.caption.13}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {付録A}Module 1 数理モデルの完全な定式化}{15}{appendix.A}\protected@file@percent }
+\newlabel{app:module1}{{付録A}{15}{Module 1 数理モデルの完全な定式化}{appendix.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}状態変数と保存則}{15}{subsection.A.1}\protected@file@percent }
+\newlabel{eq:conservation}{{1}{15}{状態変数と保存則}{equation.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}磁場依存の相判定}{15}{subsection.A.2}\protected@file@percent }
+\newlabel{eq:insky}{{2}{15}{磁場依存の相判定}{equation.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}遷移レート}{15}{subsection.A.3}\protected@file@percent }
+\newlabel{eq:rate_ctc}{{3}{15}{遷移レート}{equation.3}{}}
+\newlabel{eq:rate_tcc}{{4}{15}{遷移レート}{equation.4}{}}
+\newlabel{eq:rate_tcsk}{{5}{15}{遷移レート}{equation.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}崩壊レート（アバランシェ機構）}{15}{subsection.A.4}\protected@file@percent }
+\newlabel{eq:eact}{{6}{15}{崩壊レート（アバランシェ機構）}{equation.6}{}}
+\newlabel{eq:rate_skc}{{7}{15}{崩壊レート（アバランシェ機構）}{equation.7}{}}
+\citation{janson2014}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}状態方程式}{16}{subsection.A.5}\protected@file@percent }
+\newlabel{eq:dphitc}{{8}{16}{状態方程式}{equation.8}{}}
+\newlabel{eq:dphisk}{{9}{16}{状態方程式}{equation.9}{}}
+\newlabel{eq:phic}{{10}{16}{状態方程式}{equation.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}磁化の近似}{16}{subsection.A.6}\protected@file@percent }
+\newlabel{eq:mz}{{11}{16}{磁化の近似}{equation.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.7}入力磁場軌道（Mapped Field Cycling）}{16}{subsection.A.7}\protected@file@percent }
+\newlabel{eq:mfc}{{12}{16}{入力磁場軌道（Mapped Field Cycling）}{equation.12}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {付録B}Module 2 数理モデルの完全な定式化}{16}{appendix.B}\protected@file@percent }
+\newlabel{app:module2}{{付録B}{16}{Module 2 数理モデルの完全な定式化}{appendix.B}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.1}吸収ディップ型Lorentz関数}{16}{subsection.B.1}\protected@file@percent }
+\newlabel{eq:lorentz}{{13}{16}{吸収ディップ型Lorentz関数}{equation.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.2}各モードの中心周波数（Zeemanシフト）}{17}{subsection.B.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.3}各モードの振幅}{17}{subsection.B.3}\protected@file@percent }
+\newlabel{eq:amp_ccw}{{20}{17}{各モードの振幅}{equation.20}{}}
+\newlabel{eq:amp_br}{{21}{17}{各モードの振幅}{equation.21}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.4}全体スペクトルの合成}{17}{subsection.B.4}\protected@file@percent }
+\newlabel{eq:s11}{{22}{17}{全体スペクトルの合成}{equation.22}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.5}今後追加予定：リップル構造（未実装）}{17}{subsection.B.5}\protected@file@percent }
+\newlabel{eq:ripple}{{23}{17}{今後追加予定：リップル構造（未実装）}{equation.23}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {付録C}使用パラメータ一覧（本日時点の暫定値）}{17}{appendix.C}\protected@file@percent }
+\newlabel{app:params}{{付録C}{17}{使用パラメータ一覧（本日時点の暫定値）}{appendix.C}{}}
+\bibcite{lee2024}{1}
+\bibcite{janson2014}{2}
+\bibcite{prcpy}{3}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Module~1のパラメータ}}{18}{table.caption.14}\protected@file@percent }
+\newlabel{tab:params_m1}{{5}{18}{Module~1のパラメータ}{table.caption.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Module~2のパラメータ}}{18}{table.caption.15}\protected@file@percent }
+\newlabel{tab:params_m2}{{6}{18}{Module~2のパラメータ}{table.caption.15}{}}
+\gdef \@abspage@last{18}
