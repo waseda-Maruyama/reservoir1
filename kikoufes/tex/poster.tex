@@ -1,0 +1,405 @@
+% =====================================================================
+%  ポスター: ボトムアップ・シミュレーションで探る磁気テクスチャ型物理リザーバーの計算原理
+%  サイズ : A0 縦 (841 x 1189 mm), 2 列構成
+%  ビルド : lualatex poster.tex (1 回で可。念のため 2 回)
+%  フォント: 原ノ味ゴシック + TeX Gyre Heros (どちらも TeX Live 標準同梱)
+%
+%  図の差し替え方:
+%    \figph{高さ}{Fig.\,n}{作図メモ}{キャプション}
+%      -> \figimg{高さ}{Fig.\,n}{ファイル名}{キャプション} に書き換える
+%    作図メモ(破線枠内の小さい文字)は \fignotesfalse で一括非表示にできる
+% =====================================================================
+\RequirePackage{fix-cm}
+\documentclass{article}
+\providecommand\paperH{1189mm}
+\usepackage[paperwidth=841mm,paperheight=\paperH,margin=12mm]{geometry}
+\usepackage{luatexja-fontspec}
+\setmainjfont{Harano Aji Gothic}
+\setsansjfont{Harano Aji Mincho}
+\usepackage{xcolor,graphicx,booktabs,array,enumitem,amsmath,amssymb}
+\usepackage[most]{tcolorbox}
+\usetikzlibrary{arrows.meta,calc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\ltjsetparameter{jacharrange={-3,-8}}   % 一般句読点 (– など) を欧文扱いにして和文の空きを入れない
+
+\newif\iffignotes \fignotestrue
+
+% ---------------------------------------------------------------------
+%  数値マクロ (ここだけ直せば本文すべてに反映される)
+% ---------------------------------------------------------------------
+% --- 要素除去: フルモデルに対する MSE 比 (ユーザー実行結果, n_cycles=500) ---
+\newcommand\rTC{10.3}     % − TC 微細構造
+\newcommand\rNtwo{0.99}   % − ヘリカル n=2
+\newcommand\rSplit{1.03}  % − Sk CCW/breathing 分割
+\newcommand\rHist{2.0}    % − 履歴による周波数シフト
+\newcommand\rField{4.3}   % − 磁場による周波数シフト
+\newcommand\rBoth{5.5}    % − 両方のシフト
+\newcommand\rMD{13.3}     % − 多ドメイン
+% --- 絶対値:【要差し替え】Claude 環境 (内部生成 MG 系列, n=500) の値。
+%     手元の ablation_results.csv の値で上書きすること ---
+\newcommand\MSEfull{3.91}   % x10^-3
+\newcommand\MCfull{5.03}
+\newcommand\NLfull{0.591}
+\newcommand\CPfull{1.90}
+\newcommand\gapfull{1.06}   % 実測 MSE に対する比
+\newcommand\MCnoMD{0.45}
+\newcommand\MCnoTC{2.14}
+\newcommand\CPnoBoth{1.22}
+% --- 実測 (Lee et al.) と従来モデル (波形フィッティング) ---
+\newcommand\MSEexp{3.70}  \newcommand\MCexp{4.94}  \newcommand\NLexp{0.550} \newcommand\CPexp{1.77}
+\newcommand\MSEold{17.4}  \newcommand\MCold{4.92}  \newcommand\NLold{0.629} \newcommand\CPold{1.32}
+\newcommand\gapold{4.7}
+% --- リザーバーなし (入力 u(N) に直接リッジ回帰) の MSE [x10^-3] ---
+\newcommand\MSEnores{52}     % 本研究と同一の手順 (make_figures.py が表示する値)
+\newcommand\gapnores{14}     % \MSEnores / \MSEexp
+\newcommand\MSEnorespaper{62}% [1] 本文 (6.2x10^2 の表記を 10^-2 と解釈)
+
+% ---------------------------------------------------------------------
+%  色・フォント
+% ---------------------------------------------------------------------
+\definecolor{cMain}{HTML}{1F3A5F}
+\definecolor{cAcc}{HTML}{B8501F}
+\definecolor{cSub}{HTML}{3B7A9E}
+\definecolor{cGray}{HTML}{6B7280}
+\definecolor{cLight}{HTML}{EEF3F8}
+
+\renewcommand\normalsize{\fontsize{24}{29}\selectfont}
+\newcommand\smallfont{\fontsize{19.5}{25}\selectfont}
+\newcommand\capfont{\fontsize{16}{22.5}\selectfont}
+\newcommand\notefont{\fontsize{12.5}{17.5}\selectfont}
+\newcommand\headfont{\fontsize{34}{40}\selectfont\bfseries}
+\newcommand\subheadfont{\fontsize{24}{30}\selectfont\bfseries}
+\normalsize
+
+\newcommand\key[1]{\textbf{\color{cAcc}#1}}
+\newcommand\emk[1]{\textbf{#1}}
+\newcommand\CuOSeO{Cu$_2$OSeO$_3$}
+\newcommand\tms{\ensuremath{\times}}
+\newcommand\nitem{\par\hangindent=1em\hangafter=1\makebox[1em][l]{\textbullet}}
+\setlist[itemize]{leftmargin=1.1em,label={\color{cSub}\textbullet},itemsep=2pt,topsep=3pt,parsep=0pt}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=2pt,topsep=3pt,parsep=0pt}
+
+% --- 大分類の枠 ---
+\newtcolorbox{secbox}[2][]{enhanced, colback=white, colframe=cMain, boxrule=2.2pt,
+  arc=4mm, left=11mm, right=11mm, top=5mm, bottom=7mm,
+  title={#2}, fonttitle=\headfont, coltitle=white, colbacktitle=cMain,
+  toptitle=3.5mm, bottomtitle=3.5mm, lefttitle=11mm, #1}
+% --- 小見出し ---
+\newcommand\ssec[1]{\par\vspace{4mm}{\subheadfont\color{cMain}#1}\par
+  \vspace{-3mm}{\color{cMain!35}\rule[2mm]{\linewidth}{0.8pt}}\par\vspace{-3mm}}
+% --- 本文 + 図 の横並び ---
+\newenvironment{txtfig}[1][0.60]
+  {\def\tfw{#1}\par\begin{minipage}[t]{\tfw\linewidth}\vspace{0pt}}
+  {\end{minipage}}
+\newcommand\figside{\end{minipage}\hfill\begin{minipage}[t]{\dimexpr0.97\linewidth-\tfw\linewidth}\vspace{0pt}}
+
+% --- 図プレースホルダ ---
+\newcommand{\figph}[4]{%
+  \begin{tcolorbox}[enhanced, frame hidden, colback=cGray!7,
+    borderline={1.8pt}{0pt}{cGray!70,dashed}, arc=2mm, height from=#1 to 1000mm,
+    left=5mm,right=5mm,top=4mm,bottom=4mm]
+    {\fontsize{19}{24}\selectfont\bfseries\color{cGray}#2\quad\fontsize{14}{18}\selectfont 作図予定}\par\vspace{1.5mm}
+    \iffignotes{\notefont\color{black!75}#3\par}\fi
+  \end{tcolorbox}\par\vspace{2mm}
+  {\capfont\textbf{#2}\enspace #4\par}}
+% --- 図の差し込み用 (完成後に使う) ---
+\newcommand{\figimg}[4]{%
+  \begin{center}\includegraphics[width=\linewidth,height=#1,keepaspectratio]{#3}\end{center}
+  \vspace{-3mm}{\capfont\textbf{#2}\enspace #4\par}}
+
+% --- 要素除去の項目 ---
+% \ablitem{見出し}{MSE比の表記}{物理的な意味}{スペクトルの変化}{解釈}
+\newcommand\ablitem[5]{\par\vspace{3mm}%
+  {\fontsize{22.5}{30}\selectfont\bfseries\color{cMain}#1\hfill #2\par}\vspace{1mm}
+  {\smallfont
+  \begin{tabular}{@{}>{\bfseries}p{7.2em}@{}p{\dimexpr\linewidth-7.2em\relax}@{}}
+  物理的な意味 & #3\\[0.6mm]
+  スペクトル   & #4\\[0.6mm]
+  解釈         & #5
+  \end{tabular}\par}}
+
+\newlength\gap   \setlength\gap{4mm}
+\newlength\halfw \setlength\halfw{\dimexpr(\textwidth-\gap)/2\relax}
+\newcommand\vgap{\par\vspace{2mm}}
+
+% =====================================================================
+\begin{document}
+% =====================================================================
+
+% ---------------------- タイトル ----------------------
+\begin{tcolorbox}[enhanced, colback=cMain, colframe=cMain, arc=4mm,
+  left=18mm, right=14mm, top=9mm, bottom=9mm, coltext=white]
+\begin{minipage}[c]{\dimexpr\linewidth-150mm}
+  {\fontsize{56}{67}\selectfont\bfseries リザバーコンピューティングにおける物理実装特性と計算性能の評価\par}
+\end{minipage}\hfill
+\begin{minipage}[c]{140mm}\raggedleft
+  {\fontsize{28}{36}\selectfont 早稲田大学 基幹理工学研究科\par}
+  {\fontsize{28}{36}\selectfont 機械科学・航空宇宙専攻 \par}
+  {\fontsize{28}{36}\selectfont 柳尾研究室 丸山慶人(M1)\par}
+  \vspace{3mm}
+\end{minipage}
+\end{tcolorbox}
+\vgap
+
+% ---------------------- 要旨 ----------------------
+\begin{tcolorbox}[enhanced, colback=cLight, colframe=cMain, boxrule=1.5pt, arc=4mm,
+  left=12mm, right=12mm, top=6mm, bottom=6mm]
+{\subheadfont\color{cMain}要旨\par}\vspace{2mm}
+\begin{enumerate}
+  \item 文献に記述された物理過程のみで構成したモデルにより、Mackey\textendash{}Glass 時系列 10 ステップ先予測の MSE は実測の \key{\gapfull{} 倍}となった（リザーバーを用いず入力に直接リッジ回帰した場合は約 \gapnores{} 倍）。
+  \item 要素除去実験により、tilted conical（TC）状態に由来する 4\,GHz 帯の微細構造を除くと MSE は \key{\rTC{} 倍}、多ドメイン構造を除くと \key{\rMD{} 倍}に増加した。
+  \item 前者は読み出しチャネル間の応答の多様性を、後者は緩和時定数の分布による短期記憶を担っていると考えられる。
+\end{enumerate}
+\end{tcolorbox}
+\vgap
+
+% =====================================================================
+%  左列
+% =====================================================================
+\begin{minipage}[t]{\halfw}\vspace{0pt}
+
+\begin{secbox}{1\enspace 背景}
+\ssec{1.1\enspace リザーバーコンピューティング}
+\begin{itemize}
+  \item 入力を固定の非線形動的系（リザーバー）に与え、その状態を多数の点で観測する。
+  \item 学習は読み出し重み $W_\mathrm{out}$ の線形回帰のみで行い、リザーバー自体は変更しない。
+  \item リザーバーに求められる性質は、過去の入力の保持（記憶）と入力の非線形変換である。
+  \item 物理系の時間発展をリザーバーとして用いるものを\emk{物理リザーバー}と呼ぶ。
+\end{itemize}
+
+\figimg{500mm}{Fig.\,1}{fig/wide.png}{(a)リザーバーコンピューティングの構成。学習対象は読み出し重みのみ。(b) 先行研究[1]の物理リザバーの概念図。(c)一般的なニューラルネットワークの構成。学習対象がノード間の全結合である点がリザーバーコンピューティングと異なる。}
+
+
+
+\begin{txtfig}[0.7]
+\ssec{1.2\enspace キラル磁性体と磁気テクスチャ}
+\begin{itemize}
+  \item 磁性体中の各原子の磁気モーメント（スピン）は、交換相互作用により揃おうとする。
+  \item キラル磁性体 \CuOSeO{} は、空間反転対称性をもたない。→Dzyaloshinskii–Moriya 相互作用によりスピンがねじれた配列をとる [5]。
+  \item 温度と磁場に応じて、ヘリカル（らせん）、コニカル（円錐）、スキルミオン（渦状構造の格子）などの\emk{磁気テクスチャ}が現れる。低温のスキルミオン相は準安定であり、磁場履歴に依存して生成・消滅する。
+  \item マイクロ波を照射、スピンは特定の周波数で（スピン波共鳴）を示す。共鳴周波数は相の種類と磁場に依存し、吸収スペクトルから相の構成を推定できる。
+\end{itemize}
+
+\vspace{2mm}
+
+\figside
+\vspace*{5mm}
+% 統合した共通の図スペース (高さはテキスト量に合わせて調整可能)
+\figimg{120mm}{Fig.\,2}{fig/phase_diagram.pdf}{キラル磁性体 \CuOSeO{} の相構造。縦軸は温度、横軸は磁場。}
+
+\end{txtfig}
+
+
+\ssec{1.3\enspace 先行研究と課題}
+Lee et al.\,[1] は \CuOSeO{} を物理リザーバーとして用いた。
+\begin{itemize}
+  \item 入力：時系列値を磁場に変換し、1 サイクルを $H_\mathrm{mid}\to H_\mathrm{high}\to H_\mathrm{low}$ の 3 点で印加する。
+  \item 観測：各サイクルで 1–6\,GHz の吸収スペクトル $\Delta S_{11}$（1601 点）を測定。
+  \item 結果：スキルミオン相で MSE $=3.7\times10^{-3}$ を得た。
+\end{itemize}
+
+
+% 統合した共通の図スペース (高さはテキスト量に合わせて調整可能)
+\figimg{120mm}{Fig.\,3}{fig/lee_wide.png}{先行研究[1]の実験結果。(a)入力の時系列データ。(b)あるサイクルで測定した吸収スペクトル。(c)10 ステップ先予測の結果。灰色はリザーバーを用いず入力に直接リッジ回帰した結果。}
+\emk{課題}：スペクトルのどの成分、材料のどの性質が計算性能に寄与しているかは明らかでない。実験では特定の物理過程のみを除去することはできない。
+
+
+\end{secbox}
+
+\begin{secbox}{2\enspace 目的と方法}
+\ssec{2.1\enspace 目的と評価指標}
+\begin{enumerate}
+  \item 物理モデルが実測の計算性能をどこまで再現するかを定量化する。
+  \item 物理過程を個別に除去し、計算性能に寄与する過程を特定する。
+\end{enumerate}
+\vspace{1mm}
+
+{\smallfont\renewcommand\arraystretch{1.2}
+\begin{tabular}{@{}>{\bfseries}p{15em}p{\dimexpr\linewidth-15em-2\tabcolsep\relax}@{}}
+MSE(Mean Squared Error) & Mackey\textendash{}Glass 時系列（遅延 17）の 10 ステップ先予測の平均二乗誤差 \\
+MC(Memory Capacity)  & 遅延 $k=1$\textendash{}$11$ の入力を読み出しから線形復元できる度合いの総和 \\
+NL(Nonlinear Capacity)  & 各読み出しチャネルのうち、過去 25 ステップの入力の線形結合で説明できない割合 \\
+CP(Computational Capacity)  & 読み出し行列の有効ランク \\
+\bottomrule
+\end{tabular}\par}
+\vspace{1mm}
+{\capfont 定義・前処理は [1] および PRCpy [6] と同一とし、実測と直接比較する。\par}
+
+\ssec{2.2\enspace モデル}
+{\centering
+\begin{tikzpicture}[
+  font=\fontsize{15}{19}\selectfont, line width=0.9pt, >={Stealth[length=3.2mm,width=2.4mm]},
+  blk/.style={draw, fill=white, minimum width=46mm, minimum height=30mm, align=center,
+              inner sep=2mm, text width=42mm},
+  ttl/.style={font=\fontsize{16.5}{20}\selectfont\bfseries},
+  sub/.style={font=\fontsize{13.5}{17}\selectfont}]
+\foreach \n/\x in {a/0,b/1,c/2,d/3,e/4,f/5} \coordinate (p\n) at (\x*62mm,0);
+% Module 1: 12 ドメインの重なりを 2 枚の影で表す
+\draw[fill=white] ($(pc)+(2.4mm,2.4mm)+(-23mm,-15mm)$) rectangle ($(pc)+(2.4mm,2.4mm)+(23mm,15mm)$);
+\draw[fill=white] ($(pc)+(1.2mm,1.2mm)+(-23mm,-15mm)$) rectangle ($(pc)+(1.2mm,1.2mm)+(23mm,15mm)$);
+\node[blk] (a) at (pa) {{\bfseries 入力}\\[1mm] $u(N)$\\[1mm] {\fontsize{13.5}{17}\selectfont Mackey\textendash Glass}};
+\node[blk] (b) at (pb) {{\bfseries 磁場軌道}\\[1mm] $H(N)$\\[1mm] {\fontsize{13.5}{17}\selectfont $H_\mathrm{mid}\!\to\!H_\mathrm{high}\!\to\!H_\mathrm{low}$}};
+\node[blk] (c) at (pc) {{\bfseries Module 1}\\[1mm] 相ダイナミクス\\[1mm] {\fontsize{13.5}{17}\selectfont 12 ドメイン [3][4]}};
+\node[blk] (d) at (pd) {{\bfseries Module 2}\\[1mm] スペクトル合成\\[1mm] {\fontsize{13.5}{17}\selectfont [1][2][3]}};
+\node[blk] (e) at (pe) {{\bfseries 読み出し}\\[1mm] $\Delta S_{11}(f,N)$\\[1mm] {\fontsize{13.5}{17}\selectfont 1601 点}};
+\node[blk] (f) at (pf) {{\bfseries 評価}\\[1mm] リッジ回帰\\[1mm] {\fontsize{13.5}{17}\selectfont MSE・MC・NL・CP}};
+\draw[->] (a) -- (b);
+\draw[->] (b) -- (c);
+\draw[->] ($(c.east)+(2.4mm,0)$) -- node[above, sub] {$\phi,\ \psi$} (d);
+\draw[->] (d) -- (e);
+\draw[->] (e) -- (f);
+% 磁場は Module 2 にも直接入る (周波数の磁場シフト)
+\draw[->] (b.north) -- ++(0,7mm) -| node[pos=0.25, above, sub] {$H$（共鳴周波数の磁場依存）} (d.north);
+\end{tikzpicture}\par}
+\vspace{2mm}
+{\capfont\textbf{Fig.\,4}\enspace モデルの全体構成。Module 1 は 12 ドメインを並列に計算し、ドメイン平均とドメイン別の相分率 $\phi$・秩序度 $\psi$ を Module 2 に渡す。\par}
+\vspace{2mm}
+\emk{Module 1：相ダイナミクス}
+\begin{itemize}
+  \item 状態変数は相分率 $\phi_\mathrm{He}, \phi_\mathrm{TC}, \phi_\mathrm{Sk}$（各相が占める割合）と秩序度 $\psi\in[0,1]$（Sk格子の向きの揃い具合）。
+  \item He(Helical) $\to$ TC(Tilted Conical) $\to$ Sk(Skyrmion) の二段階核生成 [3]、TC を消費して Sk が成長する。
+\end{itemize}
+
+\begin{txtfig}
+  \[
+  \left\{
+  \begin{aligned}
+    \dot\phi_\mathrm{He} &= \underbrace{\Gamma_2\,\phi_\mathrm{TC}}_{\mathrm{TC}\to\mathrm{He}} - \underbrace{\Gamma_1\,\phi_\mathrm{He}\,S(H)}_{\mathrm{He}\to\mathrm{TC}}\\[1mm]
+    \dot\phi_\mathrm{Sk} &= \underbrace{(k_\mathrm{n} + k_\mathrm{g}\,\phi_\mathrm{TC}\phi_\mathrm{Sk})\,S(H)}_{\mathrm{TC}\to\mathrm{Sk}} - \underbrace{k_\mathrm{u}\,\phi_\mathrm{Sk}\,[1-S(H)]}_{\mathrm{Sk}\to\mathrm{TC}}\\[1mm]
+    \dot\psi &= r\,\phi_\mathrm{Sk}\,(1-\psi)\\[1mm]
+    \phi_\mathrm{TC} &= 1-\phi_\mathrm{He}-\phi_\mathrm{Sk}
+  \end{aligned}
+  \right.
+  \]
+  \[
+  S(H)=\sigma\!\left(\frac{H-H_\mathrm{min}}{w}\right)\sigma\!\left(\frac{H_\mathrm{max}-H}{w}\right)
+  \]
+  {\smallfont $S(H)$：準安定窓（$H_\mathrm{min}=25$，$H_\mathrm{max}=120$，$w=12$\,mT）の内側で 1，外側で 0 に近づく関数（$\sigma$：シグモイド関数）。$\Gamma_1, \Gamma_2, k_\mathrm{g}, k_\mathrm{u}, r$：遷移速度（Sk の立ち上がり $N\approx140$ と定常相分率を目標値として逆算），$k_\mathrm{n}$：自発核生成の微小項。\par}
+  
+
+\figside
+\figimg{98mm}{Fig.\,5}{fig/fig5_phase.pdf}{相分率 $\phi$ と秩序度 $\psi$ の変化（ドメイン平均）。灰色は評価に用いる区間。}
+\end{txtfig}
+
+\vspace{3mm}
+\begin{txtfig}
+\emk{Module 2：スペクトル合成}
+\begin{itemize}
+  \item 各相の共鳴をローレンツ型の吸収線で表し、強度は相分率に比例させた。
+  \item 共鳴周波数は磁場と履歴に依存する：
+    \[
+    f = f_0 + s_H(H-H_\mathrm{ref}) + \eta z
+    \]
+    $f_0$：基準周波数，$s_H$：磁場係数，$H_\mathrm{ref}$：基準磁場，$\eta$：履歴係数，$z$：相分率・秩序度の標準化値）。
+  \item ヘリカル相の共鳴は磁場・履歴に依存しないとした（[1]）。
+\end{itemize}
+\figside
+\figimg{98mm}{Fig.\,6}{fig/fig6_spectrum.pdf}{合成スペクトルの成分内訳（評価区間の 1 サイクル）。}
+\end{txtfig}
+\end{secbox}
+
+\end{minipage}\hfill
+% =====================================================================
+%  右列
+% =====================================================================
+\begin{minipage}[t]{\halfw}\vspace{0pt}
+
+\begin{secbox}{3\enspace 結果：実測・先行研究との比較}
+\ssec{3.1\enspace シミュレーション条件}    
+\vspace{3mm}
+入力：Mackey\textendash{}Glass 時系列データ。カオス的な時系列（血液細胞数の変動モデルに由来）。$[-1,1]$ に正規化
+
+\[
+\frac{dx}{dt} = \beta\,\frac{x(t-\tau)}{1+x(t-\tau)^{n}} - \gamma\,x(t)
+\]
+{\smallfont $x(t)$：時刻 $t$ の値，$\tau=17$：遅延時間，$\beta=0.2$，$\gamma=0.1$，$n=10$。出力：予測対象（入力データ）の 10 ステップ先の値。}\\
+条件：$H_c=73$\,mT（中心磁場），$H_\mathrm{range}=90$\,mT（磁場の振り幅），4\,K。
+\ssec{3.2\enspace モデルの評価・比較}
+\begin{txtfig}[0.60]
+{\renewcommand\arraystretch{1.22}\setlength\tabcolsep{5pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & 本モデル & 実測 & Lee et al.\,[1] \\ \midrule
+MSE [$10^{-3}$] & \textbf{\MSEfull} & \MSEexp & 3.7 \\
+MC & \textbf{\MCfull} & \MCexp & 4.6\textendash{}6.4 \\
+NL & \textbf{\NLfull} & \NLexp & 0.45\textendash{}0.58 \\
+CP & \textbf{\CPfull} & \CPexp & ― \\ \midrule
+線形回帰のみによる MSE [$10^{-3}$] & \MSEnores& ― & \MSEnorespaper \\
+\bottomrule
+\end{tabular}\par}
+
+\vspace{4mm}
+\begin{itemize}
+  \item MSE は実測の \key{\gapfull{} 倍}であった。入力に直接リッジ回帰した場合と比べると、リザーバーによる改善の大部分を再現している。
+  \item MC と NL は [1] に記載されたスキルミオン相の範囲内にある。
+  \item CP は実測と同程度（\CPfull{} と \CPexp）であった。
+\end{itemize}
+
+
+\figside
+
+\figimg{140mm}{Fig.\,7}{fig/fig7.png}{テスト区間における 10 ステップ先予測。灰色はリザーバーを用いず入力に直接リッジ回帰した結果。}
+
+\end{txtfig}
+\end{secbox}
+
+
+\begin{secbox}{4\enspace 要素除去実験}
+モデルから物理過程を 1 つずつ除去し、MSE のフルモデル比（除去後の MSE ÷ すべての要素を含むモデルの MSE）を求めた。
+\vspace{3mm}
+
+\figimg{150mm}{Fig.\,8}{fig/fig8_ablation.pdf}{各要素を除去したときの MSE のフルモデル比（対数軸）。右は除去後の MC と CP。}
+\vspace{4mm}
+\figimg{150mm}{Fig.\,9}{fig/fig9_channels.pdf}{(a) TC 微細構造の除去によるスペクトルの変化。(b) 3.4\textendash{}5.3\,GHz のチャネル対の相関係数の累積分布（括弧内は中央値）。}
+
+\ssec{4.1\enspace 各要素の除去による影響}
+{\smallfont\renewcommand\arraystretch{1.35}
+\begin{tabular}{@{}>{\bfseries}p{0.30\linewidth}>{\centering\arraybackslash}p{0.17\linewidth}p{\dimexpr0.53\linewidth-4\tabcolsep\relax}@{}}
+\toprule
+除去した要素 & MSE 比 & 性能への影響 \\ \midrule
+(a) 多ドメイン構造 & \tms\rMD & 応答の時定数が 1 種類になり、記憶（MC \MCfull{} $\to$ \MCnoMD）が低下 \\
+(b) TC 微細構造 & \tms\rTC & 4\,GHz 帯の多数の吸収線がなくなり、履歴を読み出すチャネルが減る（MC \MCfull{} $\to$ \MCnoTC） \\
+(c) 共鳴周波数のシフト\newline\mdseries（磁場,履歴,両方） & \tms\rField,\tms\rHist\newline,\tms\rBoth & 吸収線の位置が固定され、読み出しの多様性（CP \CPfull{} $\to$ \CPnoBoth）が低下 \\
+(d) ヘリカル n=2\newline\mdseries,Sk 2 モードの統合 & \tms\rNtwo,\tms\rSplit & 入力に応じて動かない、または他と同じ動きをする信号で、情報をほとんどもたない \\
+\bottomrule
+\end{tabular}\par}
+
+\vspace{5mm}
+\begin{tcolorbox}[enhanced, colback=cLight, colframe=cMain, boxrule=1.5pt, arc=3mm,
+  left=8mm, right=8mm, top=4mm, bottom=4mm]
+性能を決めるのは吸収線の強さではなく、\key{入力と履歴に応じて吸収線の位置が動き、その動き方がチャネルごとに異なること}である（Fig.\,9b）。本モデルの範囲では、その起源は磁気構造のドメインと TC 状態の多数の共鳴であった。
+\end{tcolorbox}
+\end{secbox}
+
+
+
+\begin{secbox}{5\enspace 結論と今後の課題}
+\emk{結論}
+\begin{itemize}
+  \item 文献に記述された現象からモデルを組み立て、実測の物理リザーバーとほぼ同等の予測性能と、記憶・非線形性の性質を再現した。{\smallfont\color{cGray} MSE は実測の \gapfull{} 倍。MC・NL は 文献値[1] の範囲内。\par}
+  \item 計算性能を支えているのは吸収線の強さではなく、入力と履歴に応じて吸収線の位置が動き、その動き方がチャネルごとに異なることであった。\par
+  \item その起源は、磁気構造のドメインごとに応答の速さが異なること（記憶）と、TC 状態の多数の共鳴であることが示唆された。{\smallfont\color{cGray} 多ドメイン構造・TC 微細構造の除去で MSE はそれぞれ \rMD{} 倍・\rTC{} 倍。\par}
+  \end{itemize}
+\vspace{3mm}
+\emk{今後の課題}
+\begin{itemize}
+  \item コニカル相（波形変換タスク）への適用
+  \item ノイズ・素子間ばらつきを含めた頑健性の評価
+\end{itemize}
+
+
+\end{secbox}
+
+\vspace{5mm}
+{\fontsize{18}{22}\selectfont\color{black!85}
+\textbf{参考文献}\par
+[1] O. Lee \textit{et al.}, Task-adaptive physical reservoir computing, Nat. Mater. \textbf{23}, 79 (2024).\qquad
+[2] S. Weiler \textit{et al.}, Phys. Rev. Lett. \textbf{119}, 237204 (2017).\par
+[3] A. Aqeel \textit{et al.}, Phys. Rev. Lett. \textbf{126}, 017202 (2021).\qquad
+[4] G. Malsch \textit{et al.}, arXiv:2509.00517 (2025).\par
+[5] O. Janson \textit{et al.}, Nat. Commun. \textbf{5}, 5376 (2014).\qquad
+[6] H. Youel \textit{et al.}, PRCpy, arXiv:2410.18356 (2024).\par}
+\end{minipage}
+
+\end{document}
